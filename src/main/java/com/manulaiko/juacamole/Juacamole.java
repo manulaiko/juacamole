@@ -1,10 +1,12 @@
 package com.manulaiko.juacamole;
 
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Juacamole class.
@@ -56,6 +58,7 @@ import java.util.Map;
  *
  * @author Manulaiko <manulaiko@gmail.com>
  */
+@Slf4j
 @NoArgsConstructor
 public class Juacamole {
     /**
@@ -70,6 +73,67 @@ public class Juacamole {
      */
     public Juacamole(Module... modules) {
         this.add(Arrays.asList(modules));
+    }
+
+    /**
+     * Starts the registered modules.
+     */
+    public void start() {
+        this.modules.values().forEach(this::start);
+    }
+
+    /**
+     * Starts a module.
+     *
+     * @param type Module to start.
+     */
+    public void start(Class<? extends Module> type) {
+        this.modules.computeIfPresent(type, (k, m) -> {
+            this.start(m);
+
+            return m;
+        });
+    }
+
+    /**
+     * Starts a module.
+     *
+     * It will wait for the module to be ready to be started,
+     * this means that either, the module hasn't been instantiated yet
+     * (its current status is NULL) or the module is stopping
+     * (its current status is STOPPING).
+     *
+     * If the module isn't instantiated (INSTANCED) or stopped (STOPPED)
+     * it will log an error and do nothing.
+     *
+     * @param module Module to start.
+     */
+    private void start(Module module) {
+        log.debug("Starting " + module.getClass().getName() + "...");
+
+        while (
+                // Wait if the module is being instantiated or stopped.
+                module.getStatus().ordinal() < ModuleLifeCycle.Status.INSTANCED.ordinal() &&
+                module.getStatus() != ModuleLifeCycle.Status.STOPPING
+        ) {
+            try {
+                TimeUnit.MILLISECONDS.sleep(20);
+            } catch (InterruptedException e) {
+                log.warn("Error while waiting for module to ready before starting!");
+            }
+        }
+
+        if (
+                // If the module hasn't been instantiated or stopped
+                module.getStatus() != ModuleLifeCycle.Status.INSTANCED ||
+                module.getStatus() != ModuleLifeCycle.Status.STOPPED
+        ) {
+            log.warn("Couldn't start module, illegal state! " + module.getStatus());
+
+            return;
+        }
+
+        module.start();
     }
 
     /**
