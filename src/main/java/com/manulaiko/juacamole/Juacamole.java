@@ -137,6 +137,56 @@ public class Juacamole {
     }
 
     /**
+     * Stops the registered modules.
+     */
+    public void stop() {
+        this.modules.values().forEach(this::stop);
+    }
+
+    /**
+     * Stops a module.
+     *
+     * @param type module type to stop.
+     */
+    public void stop(Class<? extends Module> type) {
+        this.modules.computeIfPresent(type, (t, m) -> {
+            this.stop(m);
+
+            return m;
+        });
+    }
+
+    /**
+     * Stops a module.
+     *
+     * If the module is being stopped it will log a warn and exit.
+     *
+     * It will then wait for the module to reach the STARTED status
+     * and then proceed to stop it.
+     *
+     * @param module Module to stop.
+     */
+    private void stop(Module module) {
+        // Return if the module is being stopped.
+        if (module.getStatus().ordinal() >= ModuleLifeCycle.Status.STOPPING.ordinal()) {
+            log.warn("Module already stopped!");
+
+            return;
+        }
+
+        // Wait if the module is being started
+        while (module.getStatus().ordinal() < ModuleLifeCycle.Status.STARTED.ordinal()) {
+            try {
+                TimeUnit.MILLISECONDS.sleep(20);
+            } catch (InterruptedException e) {
+                log.warn("Error while waiting for module to ready before starting!");
+            }
+        }
+
+        module.stop();
+    }
+
+    /**
      * Adds multiple modules.
      *
      * @param modules Modules to add.
