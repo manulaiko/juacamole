@@ -30,12 +30,6 @@ public class Module implements Runnable, ModuleLifeCycle {
      * Constructor.
      */
     public Module() {
-        this.thread = new Thread(
-                this,
-                this.getClass()
-                    .getSimpleName()
-        );
-
         this.onInstanced();
         this.status = Status.INSTANCED;
     }
@@ -51,28 +45,29 @@ public class Module implements Runnable, ModuleLifeCycle {
         }
 
         this.status = Status.STARTING;
-
-        this.thread.start();
     }
 
     /**
      * Starts the module.
      */
     public final void run() {
-        if (this.getStatus() != Status.STARTING || this.getStatus() != Status.STOPPED) {
-            log.warn("Illegal state!");
+        if (this.getStatus() != Status.STARTING && this.getStatus() != Status.STOPPED) {
+            log.warn("Illegal state! Expected STARTING|STOPPING found " + this.getStatus());
 
             return;
         }
 
         try {
             this.onStarted();
+
+            if (this.status == Status.STARTING) {
+                this.status = Status.STARTED;
+            }
         } catch (Exception e) {
             this.onException(e);
         }
 
-        if (this.getStatus().ordinal() < Status.STOPPING.ordinal()
-        ) {
+        if (this.getStatus().ordinal() < Status.STOPPING.ordinal()) {
             this.stop();
         }
     }
@@ -82,7 +77,7 @@ public class Module implements Runnable, ModuleLifeCycle {
      */
     public final void stop() {
         if (this.getStatus() != Status.STARTED) {
-            log.warn("Illegal state!");
+            log.warn("Illegal state! Expected STARTED, found "+ this.getStatus());
 
             return;
         }

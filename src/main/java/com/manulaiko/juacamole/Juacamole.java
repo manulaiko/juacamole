@@ -6,6 +6,8 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -17,19 +19,13 @@ import java.util.concurrent.TimeUnit;
  * It takes care of handling the module life cycle and publishing
  * the events to their corresponding listeners.
  *
- * To start the modules you need to add them to the instance:
+ * To start the modules you need to add them to the instance constructor:
  *
  * ```java
- * var juacamole = new Juacamole();
- *
- * juacamole.add(new APIServer());
- * juacamole.add(new Frontend());
- * ```
- *
- * You can also pass the modules to the constructor:
- *
- * ```java
- * var juacamole = new Juacamole(new APIServer(), new Frontend());
+ * var juacamole = new Juacamole(
+ *     new APIServer(),
+ *     new Frontend()
+ * );
  * ```
  *
  * Then call the method `start` to start all or any of the modules:
@@ -67,12 +63,21 @@ public class Juacamole {
     private Map<Class<? extends Module>, Module> modules = new HashMap<>();
 
     /**
+     * Module executor.
+     *
+     * Executor service that will execute all the services.
+     */
+    private ExecutorService executor = Executors.newFixedThreadPool(5);
+
+    /**
      * Constructor.
      *
      * @param modules Modules to register.
      */
     public Juacamole(Module... modules) {
         this.add(Arrays.asList(modules));
+
+        this.executor = Executors.newFixedThreadPool(this.modules.size());
     }
 
     /**
@@ -125,7 +130,7 @@ public class Juacamole {
 
         if (
                 // If the module hasn't been instantiated or stopped
-                module.getStatus() != ModuleLifeCycle.Status.INSTANCED ||
+                module.getStatus() != ModuleLifeCycle.Status.INSTANCED &&
                 module.getStatus() != ModuleLifeCycle.Status.STOPPED
         ) {
             log.warn("Couldn't start module, illegal state! " + module.getStatus());
@@ -134,6 +139,7 @@ public class Juacamole {
         }
 
         module.start();
+        this.executor.execute(module);
     }
 
     /**
@@ -191,7 +197,7 @@ public class Juacamole {
      *
      * @param modules Modules to add.
      */
-    public void add(Iterable<Module> modules) {
+    private void add(Iterable<Module> modules) {
         modules.forEach(this::add);
     }
 
@@ -200,7 +206,7 @@ public class Juacamole {
      *
      * @param module Module to add.
      */
-    public void add(Module module) {
+    private void add(Module module) {
         this.modules.put(module.getClass(), module);
     }
 
@@ -239,7 +245,7 @@ public class Juacamole {
      * @return Module instance of `type`.
      */
     public Module get(Class<? extends Module> type) {
-        return this.get().get(type);
+        return this.modules.get(type);
     }
 
     /**
