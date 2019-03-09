@@ -38,7 +38,7 @@ public class Module implements Runnable, ModuleLifeCycle {
      * Starts the module.
      */
     public final void start() {
-        if (this.getStatus().ordinal() > 1) {
+        if (this.getStatus().ordinal() > 1 && this.getStatus() != Status.STOPPED) {
             log.warn("Module already started!");
 
             return;
