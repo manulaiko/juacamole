@@ -2,6 +2,7 @@ package com.manulaiko.juacamole;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.greenrobot.eventbus.EventBus;
 
 /**
  * Module class.
@@ -22,9 +23,9 @@ public class Module implements Runnable, ModuleLifeCycle {
     private Status status = Status.NULL;
 
     /**
-     * Thread in which the module is running.
+     * Event bus instance.
      */
-    private Thread thread;
+    private EventBus eventBus = EventBus.getDefault();
 
     /**
      * Constructor.
@@ -87,5 +88,23 @@ public class Module implements Runnable, ModuleLifeCycle {
         this.onStopped();
 
         this.status = Status.STOPPED;
+    }
+
+    /**
+     * Registers a new event listener.
+     *
+     * @param listener Event listener to register.
+     */
+    protected final void register(EventListener listener) {
+        this.eventBus.register(listener);
+    }
+
+    /**
+     * Posts a new event in the bus.
+     *
+     * @param event Event to post.
+     */
+    public final void post(Event event) {
+        this.eventBus.post(event);
     }
 }
