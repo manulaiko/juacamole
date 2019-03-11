@@ -17,10 +17,10 @@ import com.manulaiko.juacamole.Juacamole;
 
 class Launcher {
     public static void main(String[] args) {
-        var juacamole = new Juacamole();
-        
-        juacamole.add(new APIServer());
-        juacamole.add(new Frontend());
+        var juacamole = new Juacamole(
+            new APIServer(),
+            new Frontend()
+        );
         
         juacamole.start();
     }
@@ -82,7 +82,7 @@ The `Event` class provides the base for each event that can be fired and the `Ev
 provides the base for each event handler:
 
 ```java
-class GetUserByIdEvent extends Event {
+class GetUserByIdEvent extends Event<User> {
     private int id;
     
     public GetUserByIdEvent(int id, Consumer<User> callback) {
@@ -97,10 +97,10 @@ class GetUserByIdEvent extends Event {
 }
 
 class GetUserByIdEventListener extends EventListener<GetUserByIdEvent> {
-    public void handle(GetUserByIdEvent event) {
+    public void onEvent(GetUserByIdEvent event) {
         // var user = getUserById(event.getId());
         //
-        // event.finish(user);
+        // event.callback(user);
     }
 }
 ```
