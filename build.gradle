@@ -7,6 +7,8 @@ plugins {
 group = 'com.github.manulaiko'
 sourceCompatibility = 11
 
+lombok.config['lombok.fieldDefaults.defaultFinal'] = 'false'
+
 repositories {
     mavenCentral()
 }
